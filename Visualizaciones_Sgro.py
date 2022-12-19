@@ -23,19 +23,19 @@ import matplotlib as mpl
 # In[2]:
 
 
-df = pd.read_csv('zomato.csv', sep = ',') #cargamos el dataset.
+df = pd.read_csv('zomato.csv', sep = ',')
 
 
 # In[3]:
 
 
-df.head() #una primera impresión.
+df.head()
 
 
 # In[4]:
 
 
-df.describe() #funciones exploratorias.
+df.describe() 
 
 
 # In[5]:
@@ -52,30 +52,34 @@ df.shape
 
 # ##### Empecemos con los gráficos de matplotlib para entender mejor la situación.
 
+# > vamos a tratar de encontrar una relación precio-calidad.
+
 # In[7]:
 
 
-x = df['rate'] # vamos a tratar de encontrar una relación precio-calidad.
+x = df['rate'] 
 y = df['approx_cost(for two people)']
 
 
 # In[8]:
 
 
-df['rate'] = df['rate'].replace(regex=r'/.*', value='') #necesitamos quitarle /5 al rate.
+df['rate'] = df['rate'].replace(regex=r'/.*', value='') 
 
 
 # In[9]:
 
 
-df['rate'] = df['rate'].replace(regex=' ', value='') # #necesitamos ahora sacamos posibles espacios que existan luego del /5.
+df['rate'] = df['rate'].replace(regex=' ', value='') 
 
 
 # In[10]:
 
 
-df['rate'].astype(str) #lo convertimos a str porque lo está tomando como float y no lo grafica matplotlib.
+df['rate'].astype(str)
 
+
+# > esta funcion "rateclean" básicamente al aplicársela a la columna rate, nos permite eliminar un str "NEW", los nan y valores "-".
 
 # In[11]:
 
@@ -83,312 +87,313 @@ df['rate'].astype(str) #lo convertimos a str porque lo está tomando como float 
 def rate_bien(valor):
     if(valor=="NEW" or valor=="nan" or valor=="-"):
         return np.nan
-    return float(str(valor).replace("/5","")) #esta funcion "rateclean" báscicamente al aplicarsela a la columna rate, nos permite eliminar un str "NEW", los nan y valores "-".
+    return float(str(valor).replace("/5","")) 
 
 
 # In[12]:
 
 
-df["rate"]=df["rate"].apply(rate_bien) #aplicamos la función.
+df["rate"]=df["rate"].apply(rate_bien) 
 
 
 # In[13]:
 
 
-df["rate"].isnull().sum() #vemos si hay nulls.
+df["rate"].isnull().sum()
 
 
 # In[14]:
 
 
-df["rate"]=df["rate"].fillna(df["rate"].mean()) #llenamos los nulls con promedio en general de los rate.
+df["rate"]=df["rate"].fillna(df["rate"].mean())
 
 
 # In[15]:
 
 
-df["rate"].isnull().sum() #no hay más nulls.
+df["rate"].isnull().sum()
 
 
 # In[16]:
 
 
-df['rate'].astype(int) #llevo la columna entero para facilitar la visualización.
+df['rate'] = df['rate'].astype(int)
 
 
 # In[17]:
 
 
-df["approx_cost(for two people)"]=df["approx_cost(for two people)"].apply(lambda x:str(x).replace(",","")) #quitamos las comas de los resultados de esta columna.
+df["approx_cost(for two people)"]=df["approx_cost(for two people)"].apply(lambda x:str(x).replace(",","")) 
 
 
 # In[18]:
 
 
-df["approx_cost(for two people)"]=df["approx_cost(for two people)"].fillna(df["approx_cost(for two people)"].astype(float).mean()) #rellenamos los nan con promedios.
+df["approx_cost(for two people)"]=df["approx_cost(for two people)"].fillna(df["approx_cost(for two people)"].astype(float).mean()) 
 
+
+# > cambiamos el nombre de la columna de tipo de local. 
 
 # In[19]:
 
 
-u_rates = df['rate'] #Voy a intentar gráficar con valores únicos (para obtener categorías).
+df=df.rename(columns={"listed_in(type)":"local_type"})
 
+
+# > Debemos ajustar el tipo de restaurante para graficarlo
 
 # In[20]:
 
 
-u_rates = u_rates.unique()
+restaurantes = df.rest_type.value_counts() 
+restaurantes_1000= restaurantes[restaurantes<1000]
+restaurantes_1000
 
 
 # In[21]:
 
 
-u_rates
+def categoria_restaurante(valor):
+    if valor in restaurantes_1000:
+        return "others"
+    else:
+         return valor
 
 
 # In[22]:
 
 
-u_rates = pd.DataFrame(u_rates)
+df.rest_type=df.rest_type.apply(categoria_restaurante) 
+df.rest_type
 
 
 # In[23]:
 
 
-u_rates
+df['rest_type']
 
+
+# > Vamos a hacer el primer gráfico con estos cambios
 
 # In[24]:
 
 
-cars = u_rates[0][0:5]
+fig, ax = plt.subplots()
 
-data = df['votes'][0:5]
+x = df['rate'][0:25000]
 
-fig,ax = plt.subplots(figsize =(10, 7)) #Vamos a graficar que nivel de puntuación es el que los consumidores han votado.
-ax.pie(data, labels = cars,)
-ax.legend()
+y = df['votes'][0:25000]
+ 
+
+plt.bar(x,y)
+
+plt.xticks(x,x)
+ax.set_xlabel('Rango de votación n/5')
+ax.set_ylabel('Cantidad de votos')
+ax.set_title('Rango de votación por cantidad de votos', style = 'italic')
 plt.show()
 
 
-# #### Este gráfico de torta nos demuestra que la mayor cantidad de votos están en el 3.7 / 3.8 de puntuación. Por lo tanto los restaurantes de Bengaluru son bastante buenos.
+# #### Este gráfico de torta nos demuestra que la mayor cantidad de votos están en el rango 4/5 de puntuación. Por lo tanto los restaurantes de Bengaluru son bastante buenosy su servicio satisfacen mayormente las expectativas de los clientes.
 
 # In[25]:
 
 
-plt.scatter(x = df['rate'], y = df["approx_cost(for two people)"], alpha = 0.5, color = "orange") # este scatter nos permite ver si hay alguna relación precio / calidad.
-plt.show()
+df['approx_cost(for two people)'].fillna(0)
+df['approx_cost(for two people)']= df['approx_cost(for two people)'].astype(float)
+df['approx_cost(for two people)'] = df['approx_cost(for two people)'].fillna(0)
 
-
-# #### Si bien el gráfico no es lo suficientemente legible, podemos ver que el costo de la comida es (relativamente) proporcional al número de puntuación de satisfacción en general. 
 
 # In[26]:
 
 
-x = df['rate']
-counts, bins = np.histogram(x)  #con este histograma podemos constatar que es real lca cifra de 3.7 / 3.8 como la más votada. 
-plt.stairs(counts, bins)
-plt.hist(bins[:-1], bins, weights=counts, color = 'green')
+x= df['local_type']
+y_df= df.groupby(by=["local_type"]).mean()
+y_df= y_df.drop(['rate'], axis=1)
+y_df= y_df.drop(['votes'], axis=1)
+y_df
 
 
-# #### Este gráfico nos demuestra que en general las personas son más propensas a votar entre 3,7 y 4,0.  
-
-# #### Ahora avancemos con los gráficos de seaborn
+# >Luego de limpiar la columna y dejarla lista para el ploteo, procedemos a ver el resultado del costo aproximado por tipo de plato
 
 # In[27]:
 
 
-plt.figure(figsize=(10,5))
-sns.countplot(y="online_order", data=df, palette = 'dark') #Este gráfico nos va a permitir entender el total de pedidos online o yendo físicamente.
+plt.style.use('seaborn')
+plt.figure(figsize=(16,8))
+plt.plot(y_df)
+plt.ylabel('Costo aproximado')
+plt.xlabel ('Tipo de local')
+plt.title('Costo promedio para dos personas por tipo de restaurante',style= 'italic')
+plt.show()
 
 
-# #### La gran mayoría de las personas han comprado por internet.
+
+# #### Este gráfico nos da a entender rápidamente que tipo de restaurante es el que tiene mayor costo promedio, en este caso podemos ver que los restaurantes o locales relacionados con bebidas y vida nocturan son los más elevados, seguido de Pubs y Bars. 
+
+# > Ahora avancemos con los gráficos de seaborn
+# 
+# > Este gráfico nos va a permitir entender el total de pedidos online o yendo físicamente.
 
 # In[28]:
 
 
+plt.style.use('seaborn')
 plt.figure(figsize=(10,5))
-sns.countplot(y= "book_table", data=df, palette = 'dark') #con este gráfico podemos ver el total de personas que han hecho reserva en el local al que han ido.
+sns.countplot(y="online_order", data=df, palette = 'dark').set(title = 'Cantidad de pedidos online y físicos')
+plt.xlabel('Número de pedidos')
+plt.ylabel('¿El pedido fue online?')
+
+
+# #### Con el resultado del gráfico vemos que se pide mayormente comida online. 
+
+# In[29]:
+
+
+plt.style.use('seaborn')
+plt.figure(figsize=(10,5))
+sns.countplot(y= "book_table", data=df, palette = 'dark').set(title = 'Cantidad de pedidos con reserva y sin reserva')
+plt.xlabel('Número de pedidos')
+plt.ylabel('¿Realizó reserva?')
 
 
 # #### El resultado está claro, la gran mayoría no hace reserva, posiblemente porque piden mayormente por delivery, más adelante veremos si es verdad.
 
-# In[56]:
+# In[46]:
 
 
-restaurantes = df.rest_type.value_counts() #Vamos a ver que hay muchas categorías de restaurantes, que no se podrían graficar todas.
-
-
-# In[57]:
-
-
-restaurantes_1000= restaurantes[restaurantes<1000] #hacemos entonces una variable que nos permita obtener los restaurantes con al menos 1000 valores.
-
-
-# In[58]:
-
-
-restaurantes_1000
-
-
-# In[59]:
-
-
-def categoria_restaurante(valor):
-    if valor in restaurantes_1000: #Esta función lo que hace es que al aplicarla a la columna, aquellos restaurantes con 1000 valores o menos se consideren "otros".
-        return "others"
-    else:
-         return valor
-
-
-# In[60]:
-
-
-df.rest_type=df.rest_type.apply(categoria_restaurante) #aplciamos la función a la columna.
-df.rest_type
-
-
-# In[61]:
-
-
-df['rest_type']
-
-
-# In[62]:
-
-
-sns.histplot(data = df, x = 'rest_type', color = 'yellow', hue='rest_type') #Grafiquemos ahora entonces las categoría de restaurantes.
+plt.style.use('fast')
+sns.histplot(data = df, x = 'rest_type', hue='rest_type').set(title = 'Cantidad de pedidos por tipo de restaurante')
+plt.ylabel('Número de pedidos')
+plt.xlabel('Tipo de restaurante')
 plt.xticks(rotation=90)
 
 
 # #### El tipo de restaurante Quick Bites, comidas rápidas, es el más cómun, seguido de cena casual. 
 
-# In[36]:
-
-
-df=df.rename(columns={"listed_in(type)":"dish_type"}) #cambiamos el nombre de la columna de tipo de alimento.
-
-
-# In[37]:
+# In[31]:
 
 
 plt.figure(figsize=(12,5))
-sns.countplot(x = "dish_type", data = df, hue="online_order", palette = 'husl')  #aplicamos ahora para conocer el tipo de plato.
+sns.countplot(x = "local_type", data = df, hue="online_order", palette = 'husl').set(title = 'Cantidad de pedidos con reserva y sin reserva')
+plt.xlabel('Tipo de local')
+plt.ylabel('¿Número de pedidos') 
 
 
 # #### Vemos entonces la relación con lo comentado recién, las personas piden online delivery mayormente. También hay un cierto número de personas que hacen "Take-away" es decir comprar en el local para llevar.
 
-# In[63]:
+# In[32]:
 
 
-ubicacion = df.location.value_counts() #Vamos a ver que hay muchas categorías de ubicaciones, que no se podrían graficar todas.
+ubicacion = df.location.value_counts() 
 
 
-# In[64]:
+# In[33]:
 
 
 ubicacion
 
 
-# In[65]:
+# In[34]:
 
 
-ubicacion_100= ubicacion[ubicacion<100] #hacemos entonces una variable que nos permita obtener las ubicaciones con al menos 1000 valores.
+ubicacion_100= ubicacion[ubicacion<100] 
 
 
-# In[66]:
+# In[35]:
 
 
 ubicacion_100
 
 
-# In[67]:
+# In[36]:
 
 
 def categoria_ubicacion(valor):
-    if valor in ubicacion_100: #Esta función lo que hace es que al aplicarla a la columna, aquellas ubicaciones con 1000 valores o menos se consideren "otras".
+    if valor in ubicacion_100: 
         return "others"
     else:
          return valor
 
 
-# In[68]:
+# In[37]:
 
 
-df.location=df.location.apply(categoria_ubicacion) #aplciamos la función a la columna.
+df.location=df.location.apply(categoria_ubicacion) 
 df.location
 
 
-# In[69]:
+# In[38]:
 
 
-plt.figure(figsize=(30,10))
-sns.countplot(x= "location", data=df, palette = "Set2") #Graficamos entonces la columna con countplot.
-plt.xticks(rotation=90)
-ax.legend()
+plt.figure(figsize=(16,8))
+chart= sns.barplot( x="location", y='votes', data=df, hue = "online_order")
+chart.set_xticklabels(chart.get_xticklabels(), rotation=90, horizontalalignment='right')
+chart.set(title = 'Cantidad de pedidos en línea y físicos por ubicación') 
+plt.xlabel('Cocina')
+plt.ylabel('Cantidad de votos') 
 
 
-# #### Vemos en este gráfico que BTM,HSR y Koramangala 5th Block son las ubicaciones con mayor cantidad. 
+# #### Con este gráfico podemos ver que Lavelle Road es la ubicación con más pedidos online y a su vez, Koramangala 5th Block con más pedidos físicos. 
 
-# In[70]:
-
-
-plt.figure(figsize=(30,10))
-sns.countplot(x= "location", data=df, hue = 'online_order', palette = 'dark') #Graficamos entonces la columna con countplot.
-plt.xticks(rotation=90)
-ax.legend()
+# In[39]:
 
 
-# #### Con este gráfico podemos ver que hay una diferencia cuando vemos el mismo gráfico dividido en pedidos online y pedidos en el local. BTM mantiene el primer puesto en ambos, pero aparencen Whitefield como el segundo lugar con mayor pedidos en el local.
-
-# In[71]:
-
-
-cocinas = df.cuisines.value_counts() #Vamos a ver que hay muchas categorías de ubicaciones, que no se podrían graficar todas.
-
-
-# In[72]:
-
-
+cocinas = df.cuisines.value_counts() 
 cocinas
 
 
-# In[73]:
+# In[40]:
 
 
-cocinas_200= cocinas[cocinas<200] #hacemos entonces una variable que nos permita obtener las ubicaciones con al menos 1000 valores.
+cocinas_200= cocinas[cocinas<100] 
 
 
-# In[74]:
+# In[41]:
 
 
 cocinas_200
 
 
-# In[75]:
+# In[42]:
 
 
 def categoria_cocinas(valor):
-    if valor in cocinas_200: #Esta función lo que hace es que al aplicarla a la columna, aquellas ubicaciones con 1000 valores o menos se consideren "otras".
+    if valor in cocinas_200:
         return "others"
     else:
          return valor
 
 
-# In[76]:
+# In[43]:
 
 
-df.cuisines=df.cuisines.apply(categoria_cocinas) #aplciamos la función a la columna.
+df.cuisines=df.cuisines.apply(categoria_cocinas) 
 df.cuisines
 
 
-# In[77]:
+# In[44]:
 
 
-plt.figure(figsize=(30,10))
-sns.countplot(y= "cuisines", data=df, palette = "Set2") #Graficamos entonces la columna con countplot.
-plt.xticks(rotation=90)
-ax.legend()
+plt.figure(figsize=(16,8))
+chart= sns.barplot( x="cuisines", y='votes', data=df)
+chart.set_xticklabels(chart.get_xticklabels(), rotation=90, horizontalalignment='right')
+chart.set(title = 'Cantidad de votos por tipo de cocina') 
+plt.xlabel('Tipos de Cocinas')
+plt.ylabel('Cantidad de votos') 
 
 
-# #### Ignorando "otros" podemos ver que la cocina más elegida es la del Norte de India. Es llamativo esto, ya que Bengaluru se encuentra en la región Sur del país. 
+# #### Ignorando "otros" podemos ver que la cocina más elegida es la de la cocina "Chinese,Thai, Momos". Es decir cocina china, tailendesa y momos. Además muy cerquita se encuentra la cocina del Norte de India y Mughlai. Al ser Bengaluru una región del sur de India llama la atención la presencia de cocina del norte. 
+
+# In[45]:
+
+
+plt.figure(figsize=(16,8))
+chart= sns.barplot( x="location", y='votes', data=df)
+chart.set_xticklabels(chart.get_xticklabels(), rotation=90, horizontalalignment='right')
+chart.set(title = 'Cantidad de votos por ubicación') 
+plt.xlabel('Ubicaciones')
+plt.ylabel('Cantidad de votos')
+
+
+# #### Con este gráfico podemos medir que ubicaciones han realizado mayor cantidad de votaciones y en este caso fue Church Street. Este dato puede ser útil para saber que zonas tienen de a hacer más votaciones y con ello aumentar el número de respuestas en encuestas o valoración del servicio. Lo que podría ayudar a los restaurantes a mejorar sus servicios basado en las puntuaciones que reciben.
